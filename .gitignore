@@ -32,7 +32,7 @@ bld/
 .vs/
 
 # Visual Studio Code
-.vscode/
+# .vscode/
 
 # JetBrains Rider
 .idea/
