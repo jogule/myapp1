@@ -415,3 +415,13 @@ FodyWeavers.xsd
 
 # Mac-specific files
 .DS_Store
+
+# Terraform files
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# AWS and deployment
+.env
+deploy.log
