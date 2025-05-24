@@ -1,3 +1,17 @@
+# Explicit patterns for subfolder projects
+# These ensure build artifacts are ignored regardless of project structure depth
+**/[Bb]in/
+**/[Oo]bj/
+**/[Dd]ebug/
+**/[Rr]elease/
+**/.vs/
+**/packages/
+**/node_modules/
+**/*.user
+**/*.suo
+**/*.cache
+**/*.log
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
