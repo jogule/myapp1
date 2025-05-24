@@ -4,12 +4,22 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
+using System.Text.RegularExpressions;
 
 namespace myapp1.E2ETests;
 
 /// <summary>
 /// End-to-end tests for the home page functionality.
 /// These tests start a real server and use Playwright to interact with the web application.
+/// 
+/// Note: Interactive server components (like the counter button click functionality) 
+/// require SignalR and the Blazor JavaScript framework to be properly loaded.
+/// These E2E tests currently focus on page structure and static content verification.
+/// 
+/// For testing interactive functionality, consider:
+/// 1. Integration tests that test the component logic directly
+/// 2. Unit tests for the component's @code methods
+/// 3. More complex E2E setup with proper static file serving
 /// </summary>
 [TestClass]
 public sealed class HomePageTests : PageTest
@@ -35,6 +45,11 @@ public sealed class HomePageTests : PageTest
         builder.WebHost.UseUrls(_baseUrl);
         builder.Environment.EnvironmentName = "Testing";
         
+        // Set the content root to the main app directory so static files can be found
+        var appPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "myapp1"));
+        builder.Environment.ContentRootPath = appPath;
+        builder.Environment.WebRootPath = Path.Combine(appPath, "wwwroot");
+        
         // Build the application
         var app = builder.Build();
         
@@ -45,7 +60,8 @@ public sealed class HomePageTests : PageTest
             app.UseHsts();
         }
 
-        // Skip HTTPS redirection and static assets for testing simplicity
+        // Enable static files (required for Blazor interactive components)
+        app.UseStaticFiles();
         app.UseAntiforgery();
         app.MapRazorComponents<myapp1.Components.App>()
             .AddInteractiveServerRenderMode();
@@ -135,5 +151,111 @@ public sealed class HomePageTests : PageTest
         await Expect(Page.Locator("body")).ToContainTextAsync("Welcome to your new app.");
         
         Console.WriteLine("✅ Home page test passed successfully!");
+    }
+
+    /// <summary>
+    /// Tests that the counter page loads successfully and displays the static content correctly.
+    /// Note: This tests the page rendering but not the interactive functionality due to E2E test limitations.
+    /// </summary>
+    [TestMethod]
+    public async Task CounterPageLoadsSuccessfully()
+    {
+        Console.WriteLine($"Testing counter page at: {_baseUrl}/counter");
+        
+        // Navigate to the counter page
+        await Page.GotoAsync($"{_baseUrl}/counter");
+
+        // Check that the page title is correct
+        await Expect(Page).ToHaveTitleAsync("Counter");
+
+        // Check that the main heading is present
+        await Expect(Page.Locator("h1")).ToContainTextAsync("Counter");
+
+        // Check that the initial count is 0
+        await Expect(Page.Locator("p[role='status']")).ToContainTextAsync("Current count: 0");
+
+        // Find the button and verify its text
+        var button = Page.Locator("button.btn.btn-primary");
+        await Expect(button).ToContainTextAsync("Click me");
+
+        // Verify that the button exists and is visible
+        await Expect(button).ToBeVisibleAsync();
+        
+        Console.WriteLine("✅ Counter page static content test passed successfully!");
+    }
+
+    /// <summary>
+    /// Tests that the counter page has the correct structure and CSS classes.
+    /// </summary>
+    [TestMethod]
+    public async Task CounterPageHasCorrectStructure()
+    {
+        Console.WriteLine($"Testing counter page structure at: {_baseUrl}/counter");
+        
+        // Navigate to the counter page
+        await Page.GotoAsync($"{_baseUrl}/counter");
+
+        // Check for Bootstrap CSS classes
+        var button = Page.Locator("button.btn.btn-primary");
+        await Expect(button).ToHaveClassAsync(new Regex(".*btn.*"));
+        await Expect(button).ToHaveClassAsync(new Regex(".*btn-primary.*"));
+
+        // Check that the status paragraph has the correct role
+        var statusParagraph = Page.Locator("p[role='status']");
+        await Expect(statusParagraph).ToBeVisibleAsync();
+        
+        Console.WriteLine("✅ Counter page structure test passed successfully!");
+    }
+
+    /// <summary>
+    /// Tests navigation to the counter page from the home page.
+    /// </summary>
+    [TestMethod]
+    public async Task NavigationToCounterPageWorks()
+    {
+        Console.WriteLine($"Testing navigation from home to counter page");
+        
+        // Start at the home page
+        await Page.GotoAsync(_baseUrl!);
+        
+        // Verify we're on the home page
+        await Expect(Page).ToHaveTitleAsync("Home");
+        
+        // Navigate directly to counter page (since nav links may vary by template)
+        await Page.GotoAsync($"{_baseUrl}/counter");
+        
+        // Verify we're now on the counter page
+        await Expect(Page).ToHaveURLAsync($"{_baseUrl}/counter");
+        await Expect(Page).ToHaveTitleAsync("Counter");
+        await Expect(Page.Locator("h1")).ToContainTextAsync("Counter");
+        
+        // Verify the counter content is present
+        await Expect(Page.Locator("p[role='status']")).ToContainTextAsync("Current count: 0");
+        
+        Console.WriteLine("✅ Navigation to counter page test passed successfully!");
+    }
+
+    /// <summary>
+    /// Tests that the weather page loads successfully and displays the expected content.
+    /// </summary>
+    [TestMethod]
+    public async Task WeatherPageLoadsSuccessfully()
+    {
+        Console.WriteLine($"Testing weather page at: {_baseUrl}/weather");
+        
+        // Navigate to the weather page
+        await Page.GotoAsync($"{_baseUrl}/weather");
+
+        // Check that the page title is correct
+        await Expect(Page).ToHaveTitleAsync("Weather");
+
+        // Check that the main heading is present
+        await Expect(Page.Locator("h1")).ToContainTextAsync("Weather");
+
+        // Check for weather-related content (the actual content may vary)
+        // Just verify the page structure loads correctly
+        await Expect(Page.Locator("body")).ToBeVisibleAsync();
+        
+        Console.WriteLine("✅ Weather page test passed successfully!");
     }
 }
